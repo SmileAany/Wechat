@@ -1,0 +1,12 @@
+{
+    "name": "dori/wechat",
+    "description": "wechat-alls",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Dori Ji",
+            "email": "326364150@qq.com"
+        }
+    ],
+    "require": {}
+}
