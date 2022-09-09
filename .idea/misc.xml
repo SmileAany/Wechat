@@ -84,4 +84,7 @@
       <textMaps />
     </LinkMapSettings>
   </component>
+  <component name="PhpEntryPointsManager">
+    <suppressed_annotations>@Author</suppressed_annotations>
+  </component>
 </project>
