@@ -57,7 +57,7 @@ class WechatPayService extends BaseService
     * @Descrip:APP支付
     * @Return array
     */
-    private function wechatPayApp()
+    public function wechatPayApp()
     {
         $userip = getClientIp();
         $notify_url = $this->orderInfo['notify_url'];//回调地址
@@ -71,7 +71,7 @@ class WechatPayService extends BaseService
         //场景信息 必要参数
         $httpsArr['scene_info'] = '{"h5_info":{"type":"Wap","wap_url":'.$notify_url.',"wap_name":"APP支付"}}';
         $httpsArr['spbill_create_ip'] =  $userip;//回调地址
-        $httpsArr['total_fee'] = $this->orderInfo['total'];
+        $httpsArr['total_fee'] = floatval($this->orderInfo['total'])*100;
         $httpsArr['trade_type'] = 'APP';//交易类型 具体看API 里面有详细介绍
 
         $signA = '';
