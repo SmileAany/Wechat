@@ -8,5 +8,20 @@
             "email": "326364150@qq.com"
         }
     ],
-    "require": {}
+    "require": {},
+    "time": "2022-9-13",
+    "minimum-stability": "dev",
+    "autoload": {
+        "psr-4": {
+            "Dori\\Wechat\\": "src/"
+        },
+        "files": [
+            "helper/function.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Smbear\\Payment\\Tests\\": "tests/"
+        }
+    }
 }

@@ -1,5 +1,5 @@
 <?php
-namespace wechat\src\Services;
+namespace Dori\Wechat\Services;
 
 class WechatPayService extends BaseService
 {
@@ -19,7 +19,7 @@ class WechatPayService extends BaseService
             'nonce_str' => self::createNonceStr(),
             'notify_url' => $this->orderInfo['notify_url'],
             'out_trade_no' => $this->orderInfo['orders_number'],
-            'spbill_create_ip' => '127.0.0.1',
+            'spbill_create_ip' => getClientIp(),
             'total_fee' => floatval($this->orderInfo['total']) * 100,
             'trade_type' => 'NATIVE',
         );
