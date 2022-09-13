@@ -8,7 +8,7 @@ class ConfigService
 {
     protected $mchid;
     protected $appid;
-    protected $apiKey;
+    protected $key;
     protected $orderInfo = [];
     /**
     * @Author: dori
@@ -16,11 +16,11 @@ class ConfigService
     * @Descrip:设置微信参数
     * @Return ConfigService
     */
-    public function setConfig(string $mchid,string $appid,string $apiKey): ConfigService
+    public function setConfig(string $mchid,string $appid,string $key): ConfigService
     {
         $this->mchid = $mchid;
         $this->appid = $appid;
-        $this->apiKey = $apiKey;
+        $this->key = $key;
         return $this;
     }
 
