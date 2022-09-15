@@ -3,6 +3,22 @@ namespace Dori\Wechat\Services;
 
 class WechatPayService extends BaseService
 {
+    protected array $unified = [];
+
+    public function __construct()
+    {
+        $this->unified = [
+            'appid' => $this->appid,
+            'body' => $this->orderInfo['body'],
+            'mch_id' => $this->mchid,
+            'nonce_str' => MD5($this->orderInfo['orders_number']),
+            'notify_url' => $this->orderInfo['notify_url'],
+            'out_trade_no' => $this->orderInfo['orders_number'],
+            'spbill_create_ip' => getClientIp(),
+            'total_fee' => floatval($this->orderInfo['total']) * 100,
+        ];
+    }
+
     /**
      * @Author: dori
      * @Date: 2022/9/8
@@ -11,20 +27,13 @@ class WechatPayService extends BaseService
      */
     public function createJsBizPackage(): array
     {
-        $unified = array(
-            'appid' => $this->appid,
-            'attach' => 'pay',
-            'body' => $this->orderInfo['body'],
-            'mch_id' => $this->mchid,
-            'nonce_str' => self::createNonceStr(),
-            'notify_url' => $this->orderInfo['notify_url'],
-            'out_trade_no' => $this->orderInfo['orders_number'],
-            'spbill_create_ip' => getClientIp(),
-            'total_fee' => floatval($this->orderInfo['total']) * 100,
-            'trade_type' => 'NATIVE',
+        $this->unified['attach'] = 'pay';
+        $this->unified['trade_type'] = 'NATIVE';
+        $this->unified['sign'] = $this->getSign($this->unified);
+        $responseXml = self::curlPost(
+            'https://api.mch.weixin.qq.com/pay/unifiedorder',
+            self::arrayToXml($this->unified)
         );
-        $unified['sign'] = self::getSign($unified, $this->key);
-        $responseXml = self::curlPost('https://api.mch.weixin.qq.com/pay/unifiedorder', self::arrayToXml($unified));
         //禁止引用外部xml实体
         libxml_disable_entity_loader(true);
         $unifiedOrder = simplexml_load_string($responseXml, 'SimpleXMLElement', LIBXML_NOCDATA);
@@ -47,7 +56,7 @@ class WechatPayService extends BaseService
             "signType" => 'MD5',
             "code_url" => $codeUrl[0],
         );
-        $arr['paySign'] = self::getSign($arr, $this->key);
+        $arr['paySign'] = $this->getSign($arr);
         return $arr;
     }
 
@@ -59,54 +68,19 @@ class WechatPayService extends BaseService
     */
     public function wechatPayApp()
     {
-        $userip = getClientIp();
         $notify_url = $this->orderInfo['notify_url'];//回调地址
-        $httpsArr = [];
-        $httpsArr['appid'] =$this->appid;//微信APPID
-        $httpsArr['body'] = $this->orderInfo['body'];
-        $httpsArr['mch_id'] = $this ->mchid;
-        $httpsArr['nonce_str'] = MD5($this->orderInfo['orders_number']);//随机字符串
-        $httpsArr['notify_url'] = $notify_url;//回调地址
-        $httpsArr['out_trade_no'] = $this->orderInfo['orders_number'];//订单号
-        //场景信息 必要参数
-        $httpsArr['scene_info'] = '{"h5_info":{"type":"Wap","wap_url":'.$notify_url.',"wap_name":"APP支付"}}';
-        $httpsArr['spbill_create_ip'] =  $userip;//回调地址
-        $httpsArr['total_fee'] = floatval($this->orderInfo['total'])*100;
-        $httpsArr['trade_type'] = 'APP';//交易类型 具体看API 里面有详细介绍
+        $this->unified['scene_info'] = '{"h5_info":{"type":"Wap","wap_url":'.$notify_url.',"wap_name":"APP支付"}}';
+        $this->unified['trade_type'] = 'APP';//交易类型 具体看API 里面有详细介绍
 
-        $signA = '';
-        foreach ($httpsArr as $key => $val) {
-            $signA .= $key.'='.$val.'&';
-        }
-        $stringSignTemp = $signA . "key=" . $this->key; //注：key为商户平台设置的密钥key
-        $sign = MD5($stringSignTemp); //注：MD5签名方式
-        $sign = strtoupper($sign);
-        $post_data = "<xml>
-                            <appid>".$httpsArr['appid']."</appid>
-                            <body>".$httpsArr['body']."</body>
-                            <mch_id>".$httpsArr['mch_id']."</mch_id>
-                            <nonce_str>".$httpsArr['nonce_str']."</nonce_str>
-                            <notify_url>".$httpsArr['notify_url']."</notify_url>
-                            <out_trade_no>".$httpsArr['out_trade_no']."</out_trade_no>
-                            <scene_info>".$httpsArr['scene_info']."</scene_info>
-                            <spbill_create_ip>".$httpsArr['spbill_create_ip']."</spbill_create_ip>
-                            <total_fee>".$httpsArr['total_fee']."</total_fee>
-                            <trade_type>".$httpsArr['trade_type']."</trade_type>
-                            <sign>$sign</sign>
-                        </xml>";//拼接成XML 格式
-        $url = "https://api.mch.weixin.qq.com/pay/unifiedorder";//微信传参地址
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_HEADER, 0);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $post_data);
-        $res = curl_exec($ch);
-        curl_close($ch);
-        $dataxml = $res; //后台POST微信传参地址  同时取得微信返回的参数
+        $this->unified['sign'] = $this->getSign($this->unified);
+        $responseXml = self::curlPost(
+            'https://api.mch.weixin.qq.com/pay/unifiedorder',
+            self::arrayToXml($this->unified)
+        );
+        //禁止引用外部xml实体
+        libxml_disable_entity_loader(true);
         //将微信返回的XML 转换成数组
-        $objectxml = (array)simplexml_load_string($dataxml, 'SimpleXMLElement', LIBXML_NOCDATA);
-
+        $objectxml = (array)simplexml_load_string($responseXml, 'SimpleXMLElement', LIBXML_NOCDATA);
         if (!array_key_exists("appid", $objectxml)
             || !array_key_exists("prepay_id", $objectxml)
             || $objectxml['prepay_id'] == "") {
@@ -122,9 +96,74 @@ class WechatPayService extends BaseService
         $result['timestamp'] = time().'';//时间戳属性
         $result['package'] = 'Sign=WXPay';
         //$result['signType'] = 'MD5';
-        $sign = $this->getSign($result,$this->key);
+        $sign = $this->getSign($result);
         $result['sign'] = $sign;
 
         return $result;
+    }
+
+    /**
+    * @Author: dori
+    * @Date: 2022/9/15
+    * @Descrip:jsapi支付
+    * @Return array
+    */
+    public function jsApiPay($code,$baseUrl)
+    {
+        $this->unified['openid'] = $this->getOpenid($code,$baseUrl);
+        //场景信息 必要参数
+        $this->unified['scene_info'] = '{"h5_info":{"type":"Wap","wap_url":'.$this->orderInfo['notify_url'].',"wap_name":"H5JSAPI支付"}}';
+        $this->unified['trade_type'] = 'JSAPI';//交易类型 具体看API 里面有详细介绍
+        //生成sign的数据
+        $this->unified['sign'] = $this->getSign($this->unified);
+        $responseXml = self::curlPost(
+            'https://api.mch.weixin.qq.com/pay/unifiedorder',
+            self::arrayToXml($this->unified)
+        );
+        //禁止引用外部xml实体
+        libxml_disable_entity_loader(true);
+        //将微信返回的XML 转换成数组
+        $objectxml = (array)simplexml_load_string($responseXml, 'SimpleXMLElement', LIBXML_NOCDATA);
+
+        if (!array_key_exists("appid", $objectxml)
+            || !array_key_exists("prepay_id", $objectxml)
+            || $objectxml['prepay_id'] == "") {
+            //数据没有获取到下单失败
+            return ['state'=>0,'error'=>'CODE已过期请重新获取'];
+        }
+
+        $result = [];
+        $result['appId'] = $objectxml['appid'];
+        $result['timeStamp'] = time();//时间戳属性
+        //生成32位唯一字符串
+        $result['nonceStr'] = md5(uniqid(microtime(true), true));
+        $result['package'] = 'prepay_id='.$objectxml['prepay_id'];//扩展字段字符串
+        $result['signType'] = 'MD5';
+        $sign = $this->getSign($result);
+        $result['paySign'] = $sign;
+        return $result;
+    }
+    /**
+    * @Author: dori
+    * @Date: 2022/9/15
+    * @Descrip:h5支付
+    * @Return array
+    */
+    public function h5Pay()
+    {
+        //场景信息 必要参数
+        $this->unified['scene_info'] = '{"h5_info":{"type":"Wap","wap_url":'.$this->orderInfo['notify_url'].',"wap_name":"H5支付"}}';
+        $this->unified['trade_type'] = 'MWEB';//交易类型 具体看API 里面有详细介绍
+        $signA = '';
+        $this->unified['sign'] = $this->getSign($this->unified);
+        $responseXml = self::curlPost(
+            'https://api.mch.weixin.qq.com/pay/unifiedorder',
+            self::arrayToXml($this->unified)
+        );
+        //禁止引用外部xml实体
+        libxml_disable_entity_loader(true);
+        //将微信返回的XML 转换成数组
+        $objectxml = (array)simplexml_load_string($responseXml, 'SimpleXMLElement', LIBXML_NOCDATA);
+        return $objectxml;
     }
 }
