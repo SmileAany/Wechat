@@ -1,11 +1,20 @@
 <?php
 namespace Dori\Wechat\Services;
 
+use Exception;
+
 class WechatPayService extends BaseService
 {
     protected array $unified = [];
 
-    public function __construct()
+    /**
+     * @Author: dori
+     * @Date: 2022/9/8
+     * @Descrip:native支付
+     * @return array
+     * @throws Exception
+     */
+    public function createJsBizPackage(): array
     {
         $this->unified = [
             'appid' => $this->appid,
@@ -17,16 +26,6 @@ class WechatPayService extends BaseService
             'spbill_create_ip' => getClientIp(),
             'total_fee' => floatval($this->orderInfo['total']) * 100,
         ];
-    }
-
-    /**
-     * @Author: dori
-     * @Date: 2022/9/8
-     * @Descrip:native支付
-     * @return array
-     */
-    public function createJsBizPackage(): array
-    {
         $this->unified['attach'] = 'pay';
         $this->unified['trade_type'] = 'NATIVE';
         $this->unified['sign'] = $this->getSign($this->unified);
@@ -38,13 +37,13 @@ class WechatPayService extends BaseService
         libxml_disable_entity_loader(true);
         $unifiedOrder = simplexml_load_string($responseXml, 'SimpleXMLElement', LIBXML_NOCDATA);
         if ($unifiedOrder === false) {
-            die('parse xml error');
+            throw new Exception('parse xml error');
         }
         if ($unifiedOrder->return_code != 'SUCCESS') {
-            die($unifiedOrder->return_msg);
+            throw new Exception($unifiedOrder->return_msg);
         }
         if ($unifiedOrder->result_code != 'SUCCESS') {
-            die($unifiedOrder->err_code);
+            throw new Exception($unifiedOrder->err_code_des);
         }
         $codeUrl = (array)($unifiedOrder->code_url);
         if(!$codeUrl[0]) exit('get code_url error');
@@ -61,13 +60,24 @@ class WechatPayService extends BaseService
     }
 
     /**
-    * @Author: dori
-    * @Date: 2022/9/13
-    * @Descrip:APP支付
-    * @Return array
-    */
+     * @Author: dori
+     * @Date: 2022/9/13
+     * @Descrip:APP支付
+     * @Return array
+     * @throws Exception
+     */
     public function wechatPayApp()
     {
+        $this->unified = [
+            'appid' => $this->appid,
+            'body' => $this->orderInfo['body'],
+            'mch_id' => $this->mchid,
+            'nonce_str' => MD5($this->orderInfo['orders_number']),
+            'notify_url' => $this->orderInfo['notify_url'],
+            'out_trade_no' => $this->orderInfo['orders_number'],
+            'spbill_create_ip' => getClientIp(),
+            'total_fee' => floatval($this->orderInfo['total']) * 100,
+        ];
         $notify_url = $this->orderInfo['notify_url'];//回调地址
         $this->unified['scene_info'] = '{"h5_info":{"type":"Wap","wap_url":'.$notify_url.',"wap_name":"APP支付"}}';
         $this->unified['trade_type'] = 'APP';//交易类型 具体看API 里面有详细介绍
@@ -85,7 +95,7 @@ class WechatPayService extends BaseService
             || !array_key_exists("prepay_id", $objectxml)
             || $objectxml['prepay_id'] == "") {
             //数据没有获取到下单失败
-            return array_merge($objectxml);
+            throw new Exception('error');
         }
 
         $result = [];
@@ -103,13 +113,24 @@ class WechatPayService extends BaseService
     }
 
     /**
-    * @Author: dori
-    * @Date: 2022/9/15
-    * @Descrip:jsapi支付
-    * @Return array
-    */
+     * @Author: dori
+     * @Date: 2022/9/15
+     * @Descrip:jsapi支付
+     * @Return array
+     * @throws Exception
+     */
     public function jsApiPay($code,$baseUrl)
     {
+        $this->unified = [
+            'appid' => $this->appid,
+            'body' => $this->orderInfo['body'],
+            'mch_id' => $this->mchid,
+            'nonce_str' => MD5($this->orderInfo['orders_number']),
+            'notify_url' => $this->orderInfo['notify_url'],
+            'out_trade_no' => $this->orderInfo['orders_number'],
+            'spbill_create_ip' => getClientIp(),
+            'total_fee' => floatval($this->orderInfo['total']) * 100,
+        ];
         $this->unified['openid'] = $this->getOpenid($code,$baseUrl);
         //场景信息 必要参数
         $this->unified['scene_info'] = '{"h5_info":{"type":"Wap","wap_url":'.$this->orderInfo['notify_url'].',"wap_name":"H5JSAPI支付"}}';
@@ -129,7 +150,7 @@ class WechatPayService extends BaseService
             || !array_key_exists("prepay_id", $objectxml)
             || $objectxml['prepay_id'] == "") {
             //数据没有获取到下单失败
-            return ['state'=>0,'error'=>'CODE已过期请重新获取'];
+            throw new Exception('error');
         }
 
         $result = [];
@@ -149,8 +170,18 @@ class WechatPayService extends BaseService
     * @Descrip:h5支付
     * @Return array
     */
-    public function h5Pay()
+    public function h5Pay(): array
     {
+        $this->unified = [
+            'appid' => $this->appid,
+            'body' => $this->orderInfo['body'],
+            'mch_id' => $this->mchid,
+            'nonce_str' => MD5($this->orderInfo['orders_number']),
+            'notify_url' => $this->orderInfo['notify_url'],
+            'out_trade_no' => $this->orderInfo['orders_number'],
+            'spbill_create_ip' => getClientIp(),
+            'total_fee' => floatval($this->orderInfo['total']) * 100,
+        ];
         //场景信息 必要参数
         $this->unified['scene_info'] = '{"h5_info":{"type":"Wap","wap_url":'.$this->orderInfo['notify_url'].',"wap_name":"H5支付"}}';
         $this->unified['trade_type'] = 'MWEB';//交易类型 具体看API 里面有详细介绍
