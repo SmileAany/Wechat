@@ -1,11 +1,16 @@
 {
     "name": "smbear/wechat",
-    "description": "wechat-alls",
+    "description": "wechat",
+    "keywords": [
+        "Laravel",
+        "Wechat"
+    ],
     "type": "library",
     "authors": [
         {
-            "name": "Dori Ji",
-            "email": "326364150@qq.com"
+            "name": "smile",
+            "email": "ywjmylove@163.com",
+            "role": "Developer"
         }
     ],
     "require": {},
@@ -19,9 +24,5 @@
             "helper/function.php"
         ]
     },
-    "autoload-dev": {
-        "psr-4": {
-            "Smbear\\Payment\\Tests\\": "tests/"
-        }
-    }
+    "license": "MIT"
 }
