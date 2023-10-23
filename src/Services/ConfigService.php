@@ -1,7 +1,7 @@
 <?php
 
 
-namespace Dori\Wechat\Services;
+namespace Smbear\Wechat\Services;
 
 
 class ConfigService

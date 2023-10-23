@@ -1,5 +1,5 @@
 <?php
-namespace Dori\Wechat\Services;
+namespace Smbear\Wechat\Services;
 
 use Exception;
 

@@ -13,7 +13,7 @@
     "minimum-stability": "dev",
     "autoload": {
         "psr-4": {
-            "Dori\\Wechat\\": "src/"
+            "Smbear\\Wechat\\": "src/"
         },
         "files": [
             "helper/function.php"
